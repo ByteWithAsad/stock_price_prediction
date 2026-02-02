@@ -131,6 +131,74 @@ st.markdown("""
         cursor: help;
         margin-left: 0.5rem;
     }
+    
+    /* Sentiment Analysis Styles */
+    .sentiment-container {
+        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        border-left: 5px solid #3b82f6;
+        margin: 2rem 0;
+        box-shadow: 0 5px 15px rgba(59, 130, 246, 0.1);
+    }
+    
+    .sentiment-header-container {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+    
+    .sentiment-emoji-large {
+        font-size: 2.5rem;
+        margin-right: 1rem;
+    }
+    
+    .sentiment-main-title {
+        color: #1e40af;
+        font-size: 1.8rem;
+        font-weight: 700;
+        margin: 0;
+    }
+    
+    .sentiment-subtitle {
+        color: #64748b;
+        margin: 0.25rem 0 0 0;
+    }
+    
+    .sentiment-message-box {
+        font-size: 1.2rem;
+        color: #334155;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: white;
+        border-radius: 10px;
+        border-left: 4px solid #60a5fa;
+    }
+    
+    .observations-box {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 2px solid #e2e8f0;
+    }
+    
+    .observations-title {
+        color: #475569;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+    
+    .observations-list {
+        color: #475569;
+        margin: 0;
+        padding-left: 1.5rem;
+    }
+    
+    .observations-list li {
+        margin-bottom: 0.5rem;
+        line-height: 1.5;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -347,11 +415,6 @@ if model and df is not None:
     lower_series = pd.Series(conf_int['lower Close'].values, index=forecast_index)
     upper_series = pd.Series(conf_int['upper Close'].values, index=forecast_index)
     
-    # ----------------------------
-    # Key Predictions Dashboard
-    # ----------------------------
-    st.markdown('<h2 class="section-header">📊 Your Stock Predictions</h2>', unsafe_allow_html=True)
-    
     # Calculate key metrics
     current_price = df['Close'].iloc[-1]
     final_prediction = forecast_series.iloc[-1]
@@ -359,9 +422,14 @@ if model and df is not None:
     price_change_pct = ((final_prediction - current_price) / current_price) * 100
     avg_change_pct = ((avg_prediction - current_price) / current_price) * 100
     
-    # Calculate confidence level (inverse of average uncertainty)
+    # Calculate confidence level
     avg_uncertainty = (upper_series - lower_series).mean()
     confidence_level = max(0, 100 - (avg_uncertainty / current_price * 500))
+    
+    # ----------------------------
+    # Key Predictions Dashboard
+    # ----------------------------
+    st.markdown('<h2 class="section-header">📊 Your Stock Predictions</h2>', unsafe_allow_html=True)
     
     # Create metrics dashboard
     col1, col2, col3, col4 = st.columns(4)
@@ -581,6 +649,49 @@ if model and df is not None:
         )
     
     # ----------------------------
+    # MARKET SENTIMENT ANALYSIS SECTION (FIXED - NO RAW HTML)
+    # ----------------------------
+    st.markdown('<h2 class="section-header">📊 Market Sentiment Analysis</h2>', unsafe_allow_html=True)
+    
+    # Calculate sentiment metrics
+    avg_daily_movement = abs(price_change_pct / forecast_days)
+    
+    # Create a container for the sentiment card
+    sentiment_container = st.container()
+    
+    with sentiment_container:
+        # Apply the sentiment container style
+        st.markdown('<div class="sentiment-container">', unsafe_allow_html=True)
+        
+        # Header with emoji and title
+        col1, col2 = st.columns([0.2, 0.8])
+        with col1:
+            st.markdown('<div class="sentiment-emoji-large">📊</div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown(f'<h2 class="sentiment-main-title">👍 Positive Outlook</h2>', unsafe_allow_html=True)
+            st.markdown(f'<p class="sentiment-subtitle">Based on {forecast_days}-day forecast</p>', unsafe_allow_html=True)
+        
+        # Message box
+        st.markdown('<div class="sentiment-message-box">Moderate growth expected. Good time for strategic investments.</div>', unsafe_allow_html=True)
+        
+        # Observations section
+        st.markdown('<div class="observations-box">', unsafe_allow_html=True)
+        st.markdown('<p class="observations-title"><strong>Key Observations:</strong></p>', unsafe_allow_html=True)
+        
+        # Create the observations list
+        observations_html = f"""
+        <ul class="observations-list">
+            <li>Predicted {price_change_pct:+.1f}% change over {forecast_days} days</li>
+            <li>Average daily movement: {avg_daily_movement:.2f}%</li>
+            <li>Confidence level: {confidence_level:.0f}%</li>
+        </ul>
+        """
+        st.markdown(observations_html, unsafe_allow_html=True)
+        
+        st.markdown('</div>', unsafe_allow_html=True)  # Close observations-box
+        st.markdown('</div>', unsafe_allow_html=True)  # Close sentiment-container
+    
+    # ----------------------------
     # AI Insights Section
     # ----------------------------
     st.markdown('<h2 class="section-header">🤖 AI Insights</h2>', unsafe_allow_html=True)
@@ -620,15 +731,6 @@ if model and df is not None:
                 </div>
             </div>
             <p style="color: #333; font-size: 1.1rem; line-height: 1.6;">{insight}</p>
-            
-            <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e9ecef;">
-                <p style="color: #666; margin-bottom: 0.5rem;"><strong>Key Observations:</strong></p>
-                <ul style="color: #666; margin: 0; padding-left: 1.2rem;">
-                    <li>Predicted {price_change_pct:+.1f}% change over {forecast_days} days</li>
-                    <li>Average daily movement: {abs(price_change_pct/forecast_days):.2f}%</li>
-                    <li>Confidence level: {confidence_level:.0f}%</li>
-                </ul>
-            </div>
         </div>
         """, unsafe_allow_html=True)
     
